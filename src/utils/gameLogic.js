@@ -1,6 +1,5 @@
 // gameLogic.js
 
-// initial setup
 export function initialBoard() {
   return [
     ["br","bn","bb","bq","bk","bb","bn","br"],
@@ -14,12 +13,10 @@ export function initialBoard() {
   ];
 }
 
-// helper
 const inside = (r,c)=>r>=0 && c>=0 && r<8 && c<8;
 
 /*
-  THIS FUNCTION RETURNS ALL RAW MOVES
-  (no check logic, just movement rules)
+  RAW MOVES (no check logic)
 */
 export function getRawMoves(board,r,c,lastMove){
 
@@ -28,23 +25,19 @@ export function getRawMoves(board,r,c,lastMove){
 
   let color = piece[0];
   let type = piece[1];
-
   let moves = [];
 
   // ---------------- ROOK ----------------
   if(type==="r"){
-    // rook moves in 4 directions
     let dirs=[[1,0],[-1,0],[0,1],[0,-1]];
 
     dirs.forEach(([dx,dy])=>{
-      let x=r+dx, y=c+dy;
+      let x=r+dx,y=c+dy;
 
-      // keep moving until blocked
       while(inside(x,y)){
         if(board[x][y]===""){
           moves.push([x,y]);
         } else {
-          // enemy piece → capture
           if(board[x][y][0]!==color) moves.push([x,y]);
           break;
         }
@@ -74,11 +67,23 @@ export function getRawMoves(board,r,c,lastMove){
 
   // ---------------- QUEEN ----------------
   if(type==="q"){
-    // queen = rook + bishop
-    let rookMoves = getRawMoves(board,r,c,null,"r");
-    let bishopMoves = getRawMoves(board,r,c,null,"b");
+    // queen = rook + bishop logic combined
+    let rookDirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    let bishopDirs=[[1,1],[1,-1],[-1,1],[-1,-1]];
 
-    return [...rookMoves,...bishopMoves];
+    [...rookDirs,...bishopDirs].forEach(([dx,dy])=>{
+      let x=r+dx,y=c+dy;
+
+      while(inside(x,y)){
+        if(board[x][y]===""){
+          moves.push([x,y]);
+        } else {
+          if(board[x][y][0]!==color) moves.push([x,y]);
+          break;
+        }
+        x+=dx; y+=dy;
+      }
+    });
   }
 
   // ---------------- PAWN ----------------
@@ -97,11 +102,14 @@ export function getRawMoves(board,r,c,lastMove){
       }
     });
 
-    // EN PASSANT
+    // EN PASSANT (FIXED - no unused variable)
     if(lastMove){
-      let [sr,sc,er,ec,pieceMoved]=lastMove;
+      let sr = lastMove[0];
+      let er = lastMove[2];
+      let ec = lastMove[3];
+      let pieceMoved = lastMove[4];
 
-      if(pieceMoved[1]==="p" && Math.abs(sr-er)===2){
+      if(pieceMoved && pieceMoved[1]==="p" && Math.abs(sr-er)===2){
         if(r===er && Math.abs(c-ec)===1){
           moves.push([r+dir,ec]);
         }
@@ -135,7 +143,7 @@ export function getRawMoves(board,r,c,lastMove){
       }
     }
 
-    // CASTLING (simple)
+    // simple castling
     if(c===4){
       if(board[r][7]==="wr" && board[r][5]==="" && board[r][6]===""){
         moves.push([r,6]);
