@@ -1,27 +1,18 @@
-.board {
-  display: grid;
-  grid-template-columns: repeat(8, 60px);
-  margin: 20px auto;
+.board{
+  display:grid;
+  grid-template-columns:repeat(8,60px);
+  margin:20px auto;
 }
 
-.square {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
+.square{
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
 }
 
-.light {
-  background: #eee;
-}
-
-.dark {
-  background: #555;
-  color: white;
-}
-
-.highlight {
-  background: yellow !important;
-}
+.light{background:#eee;}
+.dark{background:#555;color:white;}
+.highlight{background:yellow !important;}

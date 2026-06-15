@@ -1,102 +1,84 @@
 import React, { useState } from "react";
 import Square from "./Square";
-import { initialBoard, getRawMoves } from "../utils/gameLogic";
+import {
+  initialBoard,
+  getValidMoves,
+  isCheck,
+  isCheckmate,
+  getNotation
+} from "../utils/gameLogic";
 
-function Board({ turn, setTurn }) {
-  const [board, setBoard] = useState(initialBoard());
-  const [selected, setSelected] = useState(null);
-  const [validMoves, setValidMoves] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [captured, setCaptured] = useState([]);
+function Board({ turn, setTurn, addMove }) {
 
-  const handleClick = (r, c) => {
-    const piece = board[r][c];
+  const [board,setBoard]=useState(initialBoard());
+  const [selected,setSelected]=useState(null);
+  const [moves,setMoves]=useState([]);
 
-    if (selected) {
-      let isValid = validMoves.some(m => m[0] === r && m[1] === c);
+  const handleClick=(r,c)=>{
+    let piece=board[r][c];
 
-      if (!isValid) {
-        alert("Illegal move!");
+    if(selected){
+      let valid=moves.some(m=>m[0]===r && m[1]===c);
+
+      if(!valid){
+        alert("Illegal move");
         setSelected(null);
-        setValidMoves([]);
         return;
       }
 
-      let newBoard = board.map(row => [...row]);
+      let newBoard=board.map(row=>[...row]);
+      let moving=newBoard[selected[0]][selected[1]];
 
-      let moving = newBoard[selected[0]][selected[1]];
-      let capturedPiece = newBoard[r][c];
-
-      // save history for undo
-      setHistory(prev => [...prev, { board, turn }]);
-
-      newBoard[r][c] = moving;
-      newBoard[selected[0]][selected[1]] = "";
+      newBoard[r][c]=moving;
+      newBoard[selected[0]][selected[1]]="";
 
       // pawn promotion
-      if (moving === "wp" && r === 0) newBoard[r][c] = "wq";
-      if (moving === "bp" && r === 7) newBoard[r][c] = "bq";
-
-      // castling
-      if (moving[1] === "k" && Math.abs(c - selected[1]) === 2) {
-        if (c === 6) {
-          newBoard[r][5] = newBoard[r][7];
-          newBoard[r][7] = "";
-        }
-        if (c === 2) {
-          newBoard[r][3] = newBoard[r][0];
-          newBoard[r][0] = "";
-        }
+      if(moving==="wp" && r===0){
+        let choice=prompt("Promote to (q,r,b,n)");
+        newBoard[r][c]="w"+choice;
       }
 
-      if (capturedPiece) {
-        setCaptured(prev => [...prev, capturedPiece]);
+      if(moving==="bp" && r===7){
+        let choice=prompt("Promote to (q,r,b,n)");
+        newBoard[r][c]="b"+choice;
       }
+
+      addMove(getNotation(moving,[r,c]));
 
       setBoard(newBoard);
-      setTurn(turn === "white" ? "black" : "white");
+
+      let next=turn==="white"?"black":"white";
+
+      if(isCheck(newBoard,next)) alert("Check!");
+
+      if(isCheckmate(newBoard,next)) alert("Checkmate!");
+
+      setTurn(next);
       setSelected(null);
-      setValidMoves([]);
-    } else {
-      if (piece && piece[0] === (turn === "white" ? "w" : "b")) {
-        setSelected([r, c]);
-        setValidMoves(getRawMoves(board, r, c));
+      setMoves([]);
+    }
+    else{
+      if(piece && piece[0]===(turn==="white"?"w":"b")){
+        setSelected([r,c]);
+        setMoves(getValidMoves(board,r,c,turn));
       }
     }
   };
 
-  const undo = () => {
-    if (history.length === 0) return;
-
-    const last = history[history.length - 1];
-    setBoard(last.board);
-    setTurn(last.turn);
-    setHistory(history.slice(0, -1));
-  };
-
   return (
-    <>
-      <button onClick={undo}>Undo</button>
-
-      <div className="board">
-        {board.map((row, i) =>
-          row.map((sq, j) => (
-            <Square
-              key={i + "-" + j}
-              value={sq}
-              onClick={() => handleClick(i, j)}
-              highlight={validMoves.some(m => m[0] === i && m[1] === j)}
-              isDark={(i + j) % 2}
-            />
-          ))
-        )}
-      </div>
-
-      <div>
-        <h4>Captured:</h4>
-        {captured.join(" ")}
-      </div>
-    </>
+    <div className="board">
+      {board.map((row,i)=>
+        row.map((sq,j)=>(
+          <Square
+            key={i+"-"+j}
+            value={sq}
+            onClick={()=>handleClick(i,j)}
+            highlight={moves.some(m=>m[0]===i && m[1]===j)}
+            isDark={(i+j)%2}
+          />
+        ))
+      )}
+    </div>
   );
 }
 

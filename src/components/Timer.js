@@ -1,17 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React,{useEffect,useState} from "react";
 
-function Timer({ active, gameOver }) {
-  const [time, setTime] = useState(300);
+function Timer({active}){
 
-  useEffect(() => {
-    if (!active || gameOver) return;
+  const [time,setTime]=useState(300);
 
-    const interval = setInterval(() => {
-      setTime(t => (t > 0 ? t - 1 : 0));
-    }, 1000);
+  useEffect(()=>{
+    if(!active) return;
 
-    return () => clearInterval(interval);
-  }, [active, gameOver]);
+    const id=setInterval(()=>{
+      setTime(t=>t>0?t-1:0);
+    },1000);
+
+    return()=>clearInterval(id);
+  },[active]);
 
   return <div>{time}s</div>;
 }
