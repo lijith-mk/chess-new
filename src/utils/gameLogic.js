@@ -1,5 +1,6 @@
 // gameLogic.js
 
+// initial setup
 export function initialBoard() {
   return [
     ["br","bn","bb","bq","bk","bb","bn","br"],
@@ -13,131 +14,137 @@ export function initialBoard() {
   ];
 }
 
-const inside = (r,c) => r>=0 && c>=0 && r<8 && c<8;
+// helper
+const inside = (r,c)=>r>=0 && c>=0 && r<8 && c<8;
 
-// find king
-export function findKing(board, color) {
-  let target = color==="white" ? "wk" : "bk";
-  for(let i=0;i<8;i++){
-    for(let j=0;j<8;j++){
-      if(board[i][j]===target) return [i,j];
-    }
+/*
+  THIS FUNCTION RETURNS ALL RAW MOVES
+  (no check logic, just movement rules)
+*/
+export function getRawMoves(board,r,c,lastMove){
+
+  let piece = board[r][c];
+  if(!piece) return [];
+
+  let color = piece[0];
+  let type = piece[1];
+
+  let moves = [];
+
+  // ---------------- ROOK ----------------
+  if(type==="r"){
+    // rook moves in 4 directions
+    let dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+
+    dirs.forEach(([dx,dy])=>{
+      let x=r+dx, y=c+dy;
+
+      // keep moving until blocked
+      while(inside(x,y)){
+        if(board[x][y]===""){
+          moves.push([x,y]);
+        } else {
+          // enemy piece → capture
+          if(board[x][y][0]!==color) moves.push([x,y]);
+          break;
+        }
+        x+=dx; y+=dy;
+      }
+    });
   }
-}
 
-// check if square attacked
-export function isSquareAttacked(board,r,c,enemyColor){
-  for(let i=0;i<8;i++){
-    for(let j=0;j<8;j++){
-      let piece=board[i][j];
-      if(piece && piece[0]===(enemyColor==="white"?"w":"b")){
-        let moves=getRawMoves(board,i,j);
-        for(let m of moves){
-          if(m[0]===r && m[1]===c) return true;
+  // ---------------- BISHOP ----------------
+  if(type==="b"){
+    let dirs=[[1,1],[1,-1],[-1,1],[-1,-1]];
+
+    dirs.forEach(([dx,dy])=>{
+      let x=r+dx,y=c+dy;
+
+      while(inside(x,y)){
+        if(board[x][y]===""){
+          moves.push([x,y]);
+        } else {
+          if(board[x][y][0]!==color) moves.push([x,y]);
+          break;
+        }
+        x+=dx; y+=dy;
+      }
+    });
+  }
+
+  // ---------------- QUEEN ----------------
+  if(type==="q"){
+    // queen = rook + bishop
+    let rookMoves = getRawMoves(board,r,c,null,"r");
+    let bishopMoves = getRawMoves(board,r,c,null,"b");
+
+    return [...rookMoves,...bishopMoves];
+  }
+
+  // ---------------- PAWN ----------------
+  if(type==="p"){
+    let dir = color==="w"?-1:1;
+
+    // forward
+    if(inside(r+dir,c) && board[r+dir][c]===""){
+      moves.push([r+dir,c]);
+    }
+
+    // capture
+    [[r+dir,c+1],[r+dir,c-1]].forEach(([x,y])=>{
+      if(inside(x,y) && board[x][y] && board[x][y][0]!==color){
+        moves.push([x,y]);
+      }
+    });
+
+    // EN PASSANT
+    if(lastMove){
+      let [sr,sc,er,ec,pieceMoved]=lastMove;
+
+      if(pieceMoved[1]==="p" && Math.abs(sr-er)===2){
+        if(r===er && Math.abs(c-ec)===1){
+          moves.push([r+dir,ec]);
         }
       }
     }
   }
-  return false;
-}
 
-export function isCheck(board,color){
-  let king=findKing(board,color);
-  let enemy=color==="white"?"black":"white";
-  return isSquareAttacked(board,king[0],king[1],enemy);
-}
-
-// moves
-export function getRawMoves(board,r,c){
-  let piece=board[r][c];
-  if(!piece) return [];
-
-  let color=piece[0];
-  let type=piece[1];
-  let moves=[];
-
-  if(type==="p"){
-    let dir=color==="w"?-1:1;
-
-    if(inside(r+dir,c)&&board[r+dir][c]===""){
-      moves.push([r+dir,c]);
-    }
-
-    [[r+dir,c+1],[r+dir,c-1]].forEach(([x,y])=>{
-      if(inside(x,y)&&board[x][y]&&board[x][y][0]!==color){
-        moves.push([x,y]);
-      }
-    });
-  }
-
+  // ---------------- KNIGHT ----------------
   if(type==="n"){
     let steps=[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+
     steps.forEach(([dx,dy])=>{
       let x=r+dx,y=c+dy;
-      if(inside(x,y)&&(!board[x][y]||board[x][y][0]!==color)){
+
+      if(inside(x,y) && (!board[x][y] || board[x][y][0]!==color)){
         moves.push([x,y]);
       }
     });
   }
 
+  // ---------------- KING ----------------
   if(type==="k"){
     for(let dx=-1;dx<=1;dx++){
       for(let dy=-1;dy<=1;dy++){
         if(dx||dy){
           let x=r+dx,y=c+dy;
-          if(inside(x,y)&&(!board[x][y]||board[x][y][0]!==color)){
+          if(inside(x,y) && (!board[x][y] || board[x][y][0]!==color)){
             moves.push([x,y]);
           }
         }
       }
     }
-  }
 
-  return moves;
-}
-
-export function getValidMoves(board,r,c,color){
-  let raw=getRawMoves(board,r,c);
-  let valid=[];
-
-  for(let m of raw){
-    let copy=board.map(row=>[...row]);
-    copy[m[0]][m[1]]=copy[r][c];
-    copy[r][c]="";
-
-    if(!isCheck(copy,color)) valid.push(m);
-  }
-
-  return valid;
-}
-
-export function isCheckmate(board,color){
-  if(!isCheck(board,color)) return false;
-
-  for(let i=0;i<8;i++){
-    for(let j=0;j<8;j++){
-      let piece=board[i][j];
-      if(piece && piece[0]===(color==="white"?"w":"b")){
-        if(getValidMoves(board,i,j,color).length>0) return false;
+    // CASTLING (simple)
+    if(c===4){
+      if(board[r][7]==="wr" && board[r][5]==="" && board[r][6]===""){
+        moves.push([r,6]);
+      }
+      if(board[r][0]==="wr" && board[r][1]==="" && board[r][2]==="" && board[r][3]===""){
+        moves.push([r,2]);
       }
     }
   }
-  return true;
-}
 
-// FULL notation
-export function getNotation(piece, from, to, capture, check, mate){
-  const files="abcdefgh";
-  const names={p:"",r:"R",n:"N",b:"B",q:"Q",k:"K"};
-
-  let move=names[piece[1]];
-
-  move+=files[from[1]]+(8-from[0]);
-  if(capture) move+="x";
-  move+=files[to[1]]+(8-to[0]);
-
-  if(mate) move+="#";
-  else if(check) move+="+";
-
-  return move;
+  return moves;
 }

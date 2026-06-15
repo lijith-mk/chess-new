@@ -1,7 +1,6 @@
 .board{
   display:grid;
   grid-template-columns:repeat(8,60px);
-  margin:20px auto;
 }
 
 .square{
@@ -10,7 +9,7 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  cursor:pointer;
+  font-size:24px;
 }
 
 .light{background:#eee;}
