@@ -1,3 +1,6 @@
+
+
+// initial board setup
 export function initialBoard() {
   return [
     ["br","bn","bb","bq","bk","bb","bn","br"],
@@ -11,148 +14,131 @@ export function initialBoard() {
   ];
 }
 
-const directions = {
-  bishop: [[1,1],[1,-1],[-1,1],[-1,-1]],
-  rook: [[1,0],[-1,0],[0,1],[0,-1]],
-  queen: [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]],
-};
+// check if position is inside board
+const inside = (r, c) => r >= 0 && c >= 0 && r < 8 && c < 8;
 
-const inBounds = (x,y) => x>=0 && y>=0 && x<8 && y<8;
 
-// raw moves (no check logic)
-function getRawMoves(board, [r,c], turn) {
+
+export function getRawMoves(board, r, c) {
   const piece = board[r][c];
   if (!piece) return [];
 
+  const color = piece[0];
   const type = piece[1];
   let moves = [];
 
+  // -------- PAWN --------
   if (type === "p") {
-    const dir = turn === "white" ? -1 : 1;
+    let dir = color === "w" ? -1 : 1;
 
-    if (board[r+dir]?.[c] === "") moves.push([r+dir,c]);
+    // forward move
+    if (inside(r + dir, c) && board[r + dir][c] === "") {
+      moves.push([r + dir, c]);
 
-    [[r+dir,c+1],[r+dir,c-1]].forEach(([x,y])=>{
-      if(inBounds(x,y) && board[x][y] && board[x][y][0] !== piece[0]){
-        moves.push([x,y]);
+      // first double move
+      if ((r === 6 && color === "w") || (r === 1 && color === "b")) {
+        if (board[r + 2 * dir][c] === "") {
+          moves.push([r + 2 * dir, c]);
+        }
+      }
+    }
+
+    // capture moves
+    [[r + dir, c + 1], [r + dir, c - 1]].forEach(([x, y]) => {
+      if (inside(x, y) && board[x][y] && board[x][y][0] !== color) {
+        moves.push([x, y]);
       }
     });
   }
 
+  // -------- ROOK --------
+  if (type === "r") {
+    let dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    dirs.forEach(([dx, dy]) => {
+      let x = r + dx, y = c + dy;
+      while (inside(x, y)) {
+        if (board[x][y] === "") {
+          moves.push([x, y]);
+        } else {
+          if (board[x][y][0] !== color) moves.push([x, y]);
+          break;
+        }
+        x += dx;
+        y += dy;
+      }
+    });
+  }
+
+  // -------- BISHOP --------
+  if (type === "b") {
+    let dirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
+    dirs.forEach(([dx, dy]) => {
+      let x = r + dx, y = c + dy;
+      while (inside(x, y)) {
+        if (board[x][y] === "") {
+          moves.push([x, y]);
+        } else {
+          if (board[x][y][0] !== color) moves.push([x, y]);
+          break;
+        }
+        x += dx;
+        y += dy;
+      }
+    });
+  }
+
+  // -------- QUEEN --------
+  if (type === "q") {
+    let dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    dirs.forEach(([dx, dy]) => {
+      let x = r + dx, y = c + dy;
+      while (inside(x, y)) {
+        if (board[x][y] === "") {
+          moves.push([x, y]);
+        } else {
+          if (board[x][y][0] !== color) moves.push([x, y]);
+          break;
+        }
+        x += dx;
+        y += dy;
+      }
+    });
+  }
+
+  // -------- KNIGHT --------
   if (type === "n") {
-    const ops = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
-    ops.forEach(([dx,dy])=>{
-      let x=r+dx,y=c+dy;
-      if(inBounds(x,y) && (!board[x][y] || board[x][y][0]!==piece[0])){
-        moves.push([x,y]);
+    let steps = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+    steps.forEach(([dx, dy]) => {
+      let x = r + dx, y = c + dy;
+      if (inside(x, y) && (!board[x][y] || board[x][y][0] !== color)) {
+        moves.push([x, y]);
       }
     });
   }
 
+  
   if (type === "k") {
-    for(let dx=-1;dx<=1;dx++){
-      for(let dy=-1;dy<=1;dy++){
-        if(dx||dy){
-          let x=r+dx,y=c+dy;
-          if(inBounds(x,y) && (!board[x][y] || board[x][y][0]!==piece[0])){
-            moves.push([x,y]);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx || dy) {
+          let x = r + dx, y = c + dy;
+          if (inside(x, y) && (!board[x][y] || board[x][y][0] !== color)) {
+            moves.push([x, y]);
           }
         }
       }
     }
-  }
 
-  if (type === "b" || type === "r" || type === "q") {
-    let dirs = directions[
-      type === "b" ? "bishop" :
-      type === "r" ? "rook" : "queen"
-    ];
-
-    dirs.forEach(([dx,dy])=>{
-      let x=r+dx,y=c+dy;
-      while(inBounds(x,y)){
-        if(board[x][y]===""){
-          moves.push([x,y]);
-        } else {
-          if(board[x][y][0]!==piece[0]) moves.push([x,y]);
-          break;
-        }
-        x+=dx; y+=dy;
+    // CASTLING
+    if (color === "w" && r === 7 && c === 4) {
+      if (board[7][7] === "wr" && board[7][5] === "" && board[7][6] === "") {
+        moves.push([7,6]);
       }
-    });
+      if (board[7][0] === "wr" && board[7][1] === "" && board[7][2] === "" && board[7][3] === "") {
+        moves.push([7,2]);
+      }
+    }
   }
 
   return moves;
-}
-
-export function isCheck(board, turn) {
-  let king = turn === "white" ? "wk" : "bk";
-  let kingPos;
-
-  for(let i=0;i<8;i++){
-    for(let j=0;j<8;j++){
-      if(board[i][j] === king) kingPos = [i,j];
-    }
-  }
-
-  const enemy = turn === "white" ? "black" : "white";
-
-  for(let i=0;i<8;i++){
-    for(let j=0;j<8;j++){
-      if(board[i][j] && board[i][j][0] !== king[0]){
-        let moves = getRawMoves(board, [i,j], enemy);
-        if(moves.some(m=>m[0]===kingPos[0] && m[1]===kingPos[1])){
-          return true;
-        }
-      }
-    }
-  }
-
-  return false;
-}
-
-export function getValidMoves(board, [r,c], turn) {
-  const moves = getRawMoves(board, [r,c], turn);
-
-  return moves.filter(([x,y])=>{
-    const copy = board.map(row=>[...row]);
-    copy[x][y] = copy[r][c];
-    copy[r][c] = "";
-
-    return !isCheck(copy, turn);
-  });
-}
-
-export function isCheckmate(board, turn) {
-  if (!isCheck(board, turn)) return false;
-
-  for(let i=0;i<8;i++){
-    for(let j=0;j<8;j++){
-      if(board[i][j] && board[i][j][0] === (turn==="white"?"w":"b")){
-        let moves = getValidMoves(board, [i,j], turn);
-        if(moves.length > 0) return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-export function getNotation(piece, from, to, capture) {
-  const files = "abcdefgh";
-
-  let name = {
-    p: "",
-    r: "R",
-    n: "N",
-    b: "B",
-    q: "Q",
-    k: "K"
-  }[piece[1]];
-
-  let move = name + files[to[1]] + (8 - to[0]);
-
-  if (capture) move = name + "x" + files[to[1]] + (8 - to[0]);
-
-  return move;
 }

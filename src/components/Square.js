@@ -1,9 +1,9 @@
 import React from "react";
 
-function Square({ value, onClick, isDark }) {
+function Square({ value, onClick, isDark, highlight }) {
   return (
     <div
-      className={`square ${isDark ? "dark" : "light"}`}
+      className={`square ${isDark ? "dark" : "light"} ${highlight ? "highlight" : ""}`}
       onClick={onClick}
     >
       {value}
