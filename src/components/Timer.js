@@ -6,11 +6,11 @@ function Timer({time,active,onChange}){
     if(!active) return;
 
     const id=setInterval(()=>{
-      onChange(prev => prev>0 ? prev-1 : 0);
+      onChange(time > 0 ? time - 1 : 0);
     },1000);
 
     return()=>clearInterval(id);
-  },[active,onChange]); // fixed dependency
+  },[active,time,onChange]);
 
   return <div>{time}s</div>;
 }

@@ -5,25 +5,25 @@ import {
   getValidMoves,
   isCheck,
   isCheckmate,
+  isStalemate,
   getNotation
 } from "../utils/gameLogic";
 
-function Board(){
+function Board({turn,setTurn}){
 
   const [board,setBoard]=useState(initialBoard());
   const [selected,setSelected]=useState(null);
   const [moves,setMoves]=useState([]);
-  const [turn,setTurn]=useState("white");
-  const [moveList,setMoveList]=useState([]);
-  const [gameOver,setGameOver]=useState(false);
   const [history,setHistory]=useState([]);
   const [captured,setCaptured]=useState([]);
+  const [moveList,setMoveList]=useState([]);
+  const [gameOver,setGameOver]=useState(false);
 
   function handleClick(r,c){
 
     if(gameOver) return;
 
-    let piece = board[r][c];
+    let piece=board[r][c];
 
     if(!selected){
       if(piece && piece[0]===(turn==="white"?"w":"b")){
@@ -33,12 +33,7 @@ function Board(){
       return;
     }
 
-    let valid=false;
-    for(let i=0;i<moves.length;i++){
-      if(moves[i][0]===r && moves[i][1]===c){
-        valid=true;
-      }
-    }
+    let valid=moves.some(m=>m[0]===r && m[1]===c);
 
     if(!valid){
       setSelected(null);
@@ -48,9 +43,9 @@ function Board(){
 
     setHistory(prev=>[...prev,board]);
 
-    let newBoard = board.map(row=>[...row]);
-    let moving = newBoard[selected[0]][selected[1]];
-    let capturedPiece = newBoard[r][c];
+    let newBoard=board.map(row=>[...row]);
+    let moving=newBoard[selected[0]][selected[1]];
+    let capturedPiece=newBoard[r][c];
 
     if(capturedPiece){
       setCaptured(prev=>[...prev,capturedPiece]);
@@ -59,20 +54,39 @@ function Board(){
     newBoard[r][c]=moving;
     newBoard[selected[0]][selected[1]]="";
 
-    let next = turn==="white"?"black":"white";
+    // promotion
+    if(moving==="wp" && r===0) newBoard[r][c]="wq";
+    if(moving==="bp" && r===7) newBoard[r][c]="bq";
 
-    let text = getNotation(moving,selected,[r,c]);
+    // castling rook move
+    if(moving[1]==="k" && Math.abs(c-selected[1])===2){
+      if(c===6){
+        newBoard[r][5]=newBoard[r][7];
+        newBoard[r][7]="";
+      }
+      if(c===2){
+        newBoard[r][3]=newBoard[r][0];
+        newBoard[r][0]="";
+      }
+    }
 
-    if(isCheck(newBoard,next)) text += "+";
+    let next=turn==="white"?"black":"white";
+
+    let text=getNotation(moving,selected,[r,c]);
+
+    if(isCheck(newBoard,next)) text+="+";
     if(isCheckmate(newBoard,next)){
-      text += "#";
+      text+="#";
       setGameOver(true);
       alert("Checkmate!");
     }
 
-    setMoveList(prev=>[...prev,text]);
+    if(isStalemate(newBoard,next)){
+      setGameOver(true);
+      alert("Stalemate!");
+    }
 
-    if(isCheck(newBoard,next)) alert("Check!");
+    setMoveList(prev=>[...prev,text]);
 
     setBoard(newBoard);
     setSelected(null);
@@ -82,8 +96,7 @@ function Board(){
 
   function undoMove(){
     if(history.length===0) return;
-
-    let last = history[history.length-1];
+    let last=history[history.length-1];
     setBoard(last);
     setHistory(history.slice(0,-1));
   }
