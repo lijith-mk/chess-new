@@ -1,16 +1,16 @@
-import React,{useEffect} from "react";
+import React, { useEffect } from "react";
 
-function Timer({time,active,onChange}){
+function Timer({ time, active, onChange }) {
 
-  useEffect(()=>{
-    if(!active) return;
+  useEffect(() => {
+    if (!active) return;
 
-    const id=setInterval(()=>{
-      onChange(prev=>prev>0?prev-1:0);
-    },1000);
+    const id = setInterval(() => {
+      onChange(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
 
-    return()=>clearInterval(id);
-  },[active]);
+    return () => clearInterval(id);
+  }, [active, onChange]); // ✅ fixed dependency
 
   return <div>{time}s</div>;
 }
