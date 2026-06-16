@@ -17,7 +17,7 @@ function App(){
         onChange={(t)=>setTime(p=>({...p,white:t}))}
       />
 
-      <Board turn={turn} setTurn={setTurn}/>
+      <Board/>
 
       <Timer
         time={time.black}
